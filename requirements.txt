@@ -1,0 +1,11 @@
+absl-py==2.4.0
+etils==1.13.0
+fsspec==2026.2.0
+glfw==2.10.0
+importlib_resources==6.5.2
+mujoco==3.5.0
+numpy==2.2.6
+packaging @ file:///home/task_176104877067765/conda-bld/packaging_1761049113113/work
+PyOpenGL==3.1.10
+typing_extensions==4.15.0
+zipp==3.23.0
