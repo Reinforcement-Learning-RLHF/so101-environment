@@ -16,10 +16,9 @@ def main():
             viewer.sync()
             
             # 3. Run a few steps to see it
-            for _ in range(200):
+            for _ in range(500):
                 env.step(np.zeros(env.action_dim))
                 viewer.sync()
-                time.sleep(0.01) # Slow down so you can see it
 
 if __name__ == "__main__":
     main()

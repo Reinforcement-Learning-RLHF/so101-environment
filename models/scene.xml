@@ -37,7 +37,7 @@
       <geom name="leg4" type="cylinder" size="0.02 0.2" pos="-0.25 -0.35 0.2" rgba="0.2 0.2 0.2 1"/>
     </body>
 
-    <body name="target_cup" pos="0.55 0.1 0.42">
+    <body name="target_cup" pos="0.4 0.2 0.42">
         <site name="target_center" pos="0 0 0.04" size="0.005" rgba="0 0 0 0"/>        
         <geom name="t_bottom" type="box" size="0.02 0.02 0.003" pos="0 0 0.003" rgba="0 0 1 0.2"/>
         <geom name="t_wall_n" type="box" size="0.02 0.002 0.033" pos="0 0.020 0.033" rgba="0 0 1 0.2"/>
@@ -46,7 +46,7 @@
         <geom name="t_wall_w" type="box" size="0.002 0.02 0.033" pos="-0.020 0 0.033" rgba="0 0 1 0.2"/>
     </body>
 
-    <body name="source_cup" pos="0.55 -0.1 0.42">
+    <body name="source_cup" pos="0.4 -0.2 0.42">
         <freejoint/>
         <inertial pos="0 0 0.03" mass="0.05" diaginertia="0.0001 0.0001 0.0001"/>         
         <geom name="s_bottom" type="box" size="0.02 0.02 0.003" pos="0 0 0.003" rgba="1 0 0 0.2"/>
@@ -59,7 +59,7 @@
     <replicate count="2" offset="0.01 0 0">
         <replicate count="2" offset="0 0.01 0">
             <replicate count="8" offset="0 0 0.01">
-                <body name="water_particle" pos="0.54 -0.1 0.43">
+                <body name="water_particle" pos="0.4 -0.2 0.43">
                     <freejoint/>
                     <geom type="sphere" size="0.004" rgba="0 0.5 1 1" mass="0.0005" margin="0.001" friction="0.01 0.005 0.0001" solref=".002 1" solimp="0.99 0.999 0.0001" damping="0.01" condim="3"/>
                 </body>
