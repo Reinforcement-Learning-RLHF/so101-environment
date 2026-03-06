@@ -18,8 +18,44 @@ class ArmEnv:
         self.observation_space = np.zeros(self.obs_dim)
 
     def reset(self):
-        """Reset the simulation and return initial observation"""
         mujoco.mj_resetData(self.model, self.data)
+
+        target_id = self.model.body("target_cup").id
+        source_id = self.model.body("source_cup").id
+
+        # Randomize cup positions
+        self.model.body_pos[target_id][:2] = [
+            0.55 + np.random.uniform(-0.03, 0.03),
+            0.10 + np.random.uniform(-0.03, 0.03)
+        ]
+
+        self.model.body_pos[source_id][:2] = [
+            0.55 + np.random.uniform(-0.03, 0.03),
+            -0.10 + np.random.uniform(-0.03, 0.03)
+        ]
+
+        # Table friction
+        table_id = self.model.geom("table_top").id
+        self.model.geom_friction[table_id][0] = np.random.uniform(0.8, 1.2)
+
+        # Cup mass
+        self.model.body_mass[source_id] = np.random.uniform(0.04, 0.07)
+
+        # Water particle friction
+        for i in range(self.model.ngeom):
+            if self.model.geom_type[i] == mujoco.mjtGeom.mjGEOM_SPHERE:
+                self.model.geom_friction[i][0] = np.random.uniform(0.005, 0.02)
+
+        # Lighting
+        self.model.light_diffuse[0] = np.random.uniform(0.5, 0.8, 3)
+
+        # Camera
+        cam_id = self.model.camera("main_observation").id
+        base_pos = np.array([1.2, 0.0, 1.3])
+        self.model.cam_pos[cam_id] = base_pos + np.random.uniform(-0.02, 0.02, 3)
+
+        mujoco.mj_forward(self.model, self.data)
+
         return self.get_obs()
 
     def step(self, action):

@@ -59,7 +59,7 @@
     <replicate count="2" offset="0.01 0 0">
         <replicate count="2" offset="0 0.01 0">
             <replicate count="8" offset="0 0 0.01">
-                <body name="water_particle" pos="0.54 -0.1 0.46">
+                <body name="water_particle" pos="0.54 -0.1 0.43">
                     <freejoint/>
                     <geom type="sphere" size="0.004" rgba="0 0.5 1 1" mass="0.0005" margin="0.001" friction="0.01 0.005 0.0001" solref=".002 1" solimp="0.99 0.999 0.0001" damping="0.01" condim="3"/>
                 </body>
