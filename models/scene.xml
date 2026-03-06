@@ -1,7 +1,7 @@
 <mujoco model="scene">
   <include file="so101.xml" />
 
-  <option timestep="0.002" iterations="80" solver="Newton" tolerance="1e-10"/>
+  <option timestep="0.002" iterations="50" solver="Newton" tolerance="1e-10" cone="elliptic" impratio="10"/>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
