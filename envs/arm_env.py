@@ -19,7 +19,7 @@ class ArmEnv:
 
         # Renderer
         self.renderer = mujoco.Renderer(self.model, height=render_height, width=render_width)
-        self.cam_name = "main_observation"
+        self.cam_names = ["main_observation", "wrist_cam"]
 
         # Gym-style spaces
         self.action_space = spaces.Box(low=-3.14, high=3.14, shape=(self.action_dim,), dtype=np.float32)
@@ -28,20 +28,34 @@ class ArmEnv:
         # Episode tracking
         self.max_steps = max_steps
         self.curr_step = 0
+        self.episode_id = None
 
-    def get_image(self):
-        self.renderer.update_scene(self.data, camera=self.cam_name)
+    def get_image(self, cam_name):
+        self.renderer.update_scene(self.data, camera=cam_name)
         img = self.renderer.render()
-        img = np.transpose(img, (2, 0, 1)) / 255.0  # Normalize to [0,1], (C,H,W)
+        # Normalize to [0,1] and transpose to (C, H, W) for ACT/PyTorch
+        img = np.transpose(img, (2, 0, 1)) / 255.0  
         return img.astype(np.float32)
 
     def get_obs(self):
         qpos = np.array([self.data.joint(name).qpos[0] for name in self.joint_names], dtype=np.float32)
-        return {"qpos": qpos, "images": {self.cam_name: self.get_image()}}
+        qvel = np.array([self.data.joint(name).qvel[0] for name in self.joint_names], dtype=np.float32)
+
+        main_image = self.get_image("main_observation")
+        wrist_image = self.get_image("wrist_cam")
+        
+        return {
+            "qpos": qpos,
+            "qvel": qvel,
+            "image_main": main_image,
+            "image_wrist": wrist_image,
+            "episode_id": self.episode_id,
+            "step": self.curr_step
+        }
 
     def reset(self):
         mujoco.mj_resetData(self.model, self.data)
-        self.curr_step = 0
+        self.episode_id = np.random.randint(0, int(1e6))
 
         # 1. Randomize target cup (Fixed body, so body_pos is fine)
         target_id = self.model.body("target_cup").id
@@ -89,7 +103,7 @@ class ArmEnv:
         
         # Randomize light and camera
         self.model.light_diffuse[0] = np.random.uniform(0.5, 0.8, 3)
-        cam_id = self.model.camera(self.cam_name).id
+        cam_id = self.model.camera("main_observation").id
         self.model.cam_pos[cam_id] = np.array([1.2, 0.0, 1.3]) + np.random.uniform(-0.02, 0.02, 3)
 
         # 5. CRITICAL: Settle Period
