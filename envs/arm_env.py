@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 
 class ArmEnv:
-    def __init__(self):
+    def __init__(self, render_width=640, render_height=480):
         project_root = Path(__file__).parent.parent.resolve()
         xml_path = str(project_root / 'models' / 'scene.xml')
         self.model = mujoco.MjModel.from_xml_path(xml_path)
@@ -12,9 +12,28 @@ class ArmEnv:
         
         self.action_dim = self.model.nu      # number of actuators
         self.obs_dim = self.model.nq         # number of joint positions
+        self.renderer = mujoco.Renderer(self.model, height=render_height, width=render_width)
 
         self.action_space = np.zeros(self.action_dim)
         self.observation_space = np.zeros(self.obs_dim)
+        self.cam_name = "main_observation"
+    
+    def get_image(self):
+        """Renders the scene from the specified camera."""
+        self.renderer.update_scene(self.data, camera=self.cam_name)
+        return self.renderer.render()
+
+    def get_obs(self):
+        """
+        Returns a dictionary containing both proprioception and visual data.
+        Common practice for ACT/Diffusion models.
+        """
+        return {
+            "state": self.data.qpos.copy(),
+            "images": {
+                "top": self.get_image()
+            }
+        }
 
     def reset(self):
         mujoco.mj_resetData(self.model, self.data)
@@ -62,24 +81,10 @@ class ArmEnv:
         return self.get_obs()
 
     def step(self, action):
-        """
-        Apply an action and step the simulation
-        Returns: obs, reward, done, info
-        """
-        action = np.array(action)
         self.data.ctrl[:] = action
-
         mujoco.mj_step(self.model, self.data)
-
-        reward = 0.0
-        done = False
-        info = {}
-
-        return self.get_obs(), reward, done, info
-
-    def get_obs(self):
-        """Return the current observation (joint positions)"""
-        return self.data.qpos.copy()
+        
+        return self.get_obs(), 0.0, False, {}
 
     def close(self):
         """Optional cleanup"""
