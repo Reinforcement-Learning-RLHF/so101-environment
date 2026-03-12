@@ -4,7 +4,7 @@ from pathlib import Path
 from gymnasium import spaces
 
 class ArmEnv:
-    def __init__(self, render_width=640, render_height=480, max_steps=400):
+    def __init__(self, render_width=640, render_height=480, max_steps=400, render_images=False):
         project_root = Path(__file__).parent.parent.resolve()
         xml_path = str(project_root / 'models' / 'scene.xml')
         self.model = mujoco.MjModel.from_xml_path(xml_path)
@@ -18,6 +18,7 @@ class ArmEnv:
         self.n_substeps = 10
 
         # Renderer
+        self.render_images = render_images
         self.renderer = mujoco.Renderer(self.model, height=render_height, width=render_width)
         self.cam_names = ["main_observation", "wrist_cam"]
 
@@ -30,6 +31,12 @@ class ArmEnv:
         self.curr_step = 0
         self.episode_id = None
 
+        self.particle_indices = [
+            i for i in range(self.model.nbody)
+            if mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)
+            and "water_particle" in mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)
+        ]
+
     def get_image(self, cam_name):
         self.renderer.update_scene(self.data, camera=cam_name)
         img = self.renderer.render()
@@ -38,20 +45,24 @@ class ArmEnv:
         return img.astype(np.float32)
 
     def get_obs(self):
-        qpos = np.array([self.data.joint(name).qpos[0] for name in self.joint_names], dtype=np.float32)
-        qvel = np.array([self.data.joint(name).qvel[0] for name in self.joint_names], dtype=np.float32)
-
-        main_image = self.get_image("main_observation")
-        wrist_image = self.get_image("wrist_cam")
+        qpos = self.data.qpos[:6].copy()
+        qvel = self.data.qvel[:6].copy()
         
-        return {
+        obs = {
             "qpos": qpos,
             "qvel": qvel,
-            "image_main": main_image,
-            "image_wrist": wrist_image,
             "episode_id": self.episode_id,
             "step": self.curr_step
         }
+
+        if self.render_images:
+            # Render once, use twice
+            main_img = self.get_image("main_observation")
+            wrist_img = self.get_image("wrist_cam")
+            obs["image_main"] = main_img
+            obs["image_wrist"] = wrist_img
+
+        return obs
 
     def reset(self):
         mujoco.mj_resetData(self.model, self.data)
@@ -119,9 +130,19 @@ class ArmEnv:
     def step(self, action):
         self.curr_step += 1
 
-        # Apply action
+        noise_std = 0.0002 
+    
+        # Generate Gaussian noise with the same shape as your action
+        noise = np.random.normal(0, noise_std, size=action.shape)
+        
+        # Apply the noisy action to the controller
+        noisy_action = action + noise
+        
+        # Clip again just in case the noise pushes it past hardware limits
+        self.data.ctrl[:] = np.clip(noisy_action, self.action_space.low, self.action_space.high)
+
+        # Advance physics
         for _ in range(self.n_substeps):
-            self.data.ctrl[:] = action
             mujoco.mj_step(self.model, self.data)
 
         obs = self.get_obs()
@@ -130,11 +151,8 @@ class ArmEnv:
         target_pos = self.data.xpos[self.model.body("target_cup").id]
         cup_halfsize = np.array([0.02, 0.02, 0.033])
 
-        particle_indices = [i for i in range(self.model.nbody)
-                            if mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)
-                            and "water_particle" in mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)]
 
-        p_pos = self.data.xpos[particle_indices]
+        p_pos = self.data.xpos[self.particle_indices]
         inside = np.all(np.abs(p_pos - target_pos) <= cup_halfsize, axis=1)
         
         success_ratio = np.mean(inside)
