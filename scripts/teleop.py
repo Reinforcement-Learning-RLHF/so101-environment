@@ -45,6 +45,21 @@ def main():
             if keyboard.is_pressed('esc'):
                 break
 
+            # --- THE FIX: Add a reset trigger ---
+            if keyboard.is_pressed('r'):
+                print("Resetting environment...")
+                env.reset()
+                
+                # CRITICAL: Update target_q to match the newly reset position.
+                # If you don't do this, it will jump back to the old target_q!
+                target_q = np.copy(env.data.qpos[:6])
+                
+                # Sync the viewer immediately and skip the rest of the loop for this frame
+                viewer.sync()
+                time.sleep(0.1) # Debounce the key press so it doesn't trigger 60 times a second
+                continue 
+            # ------------------------------------
+
             speed_mult = 0.2 if keyboard.is_pressed('shift') else 1.0
 
             dx = np.zeros(3) 

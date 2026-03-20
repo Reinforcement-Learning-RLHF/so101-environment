@@ -4,16 +4,22 @@ from pathlib import Path
 from gymnasium import spaces
 
 class ArmEnv:
-    def __init__(self, render_width=640, render_height=480, max_steps=400, render_images=False):
+    def __init__(self, render_width=320, render_height=240, max_steps=400, render_images=False):
         project_root = Path(__file__).parent.parent.resolve()
         xml_path = str(project_root / 'models' / 'scene.xml')
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data = mujoco.MjData(self.model)
+        
 
         # Dimensions
         self.joint_names = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
         self.action_dim = len(self.joint_names)
         self.obs_dim = len(self.joint_names)
+
+        self.joint_ids = {
+            name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+            for name in self.joint_names
+        }
 
         self.n_substeps = 10
 
@@ -67,6 +73,8 @@ class ArmEnv:
     def reset(self):
         mujoco.mj_resetData(self.model, self.data)
         self.episode_id = np.random.randint(0, int(1e6))
+
+        self.data.qpos[self.joint_ids["wrist_roll"]] = - np.pi / 2
 
         # 1. Randomize target cup (Fixed body, so body_pos is fine)
         target_id = self.model.body("target_cup").id
