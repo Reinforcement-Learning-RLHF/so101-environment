@@ -1,5 +1,4 @@
-# Command used to run this script: sudo PYTHONPATH=. $(which python) scripts/teleop.py
-
+import time
 import numpy as np
 import mujoco
 import mujoco.viewer
@@ -16,98 +15,93 @@ def main():
     lower_limits = np.array([-1.91986, -1.74533, -1.69, -1.65806, -2.74385, -0.17453])
     upper_limits = np.array([ 1.91986,  1.74533,  1.69,  1.65806,  2.84121,  1.74533])
 
-    current_action = np.copy(env.data.qpos[:6])
+    target_q = np.copy(env.data.qpos[:6])
 
-    # Tuning parameters
-    ik_step_size = 0.015       
-    ik_rot_step_size = 0.05    
-    gripper_step = 0.15   
-    damping = 0.05             
-    max_lead = 0.15            
+    # --- TUNING PARAMETERS ---
+    control_hz = 60
+    dt = 1.0 / control_hz
+    
+    base_ik_step = 0.015               # Translation speed
+    base_pitch_step = 0.1              # Pitch speed (Tip up/down)
+    base_roll_step = 0.1               # Roll speed (Twist)
+    base_gripper = 0.10                 # Gripper speed
+    damping = 0.05                      # DLS IK damping
+    max_lead = 0.05                     # Anti-windup limit
+    # -------------------------
 
-    print("=== SO101 Robotic Arm Teleop (Decoupled) ===")
-    print(" [POSITION]")
-    print(" W/S   : Move Forward/Backward (X)")
-    print(" A/D   : Move Left/Right (Y)")
-    print(" Q/E   : Move Up/Down (Z)")
-    print("\n [ORIENTATION]")
-    print(" U/O   : Roll (Rotate around X)")
-    print(" I/K   : Pitch (Rotate around Y)")
-    print(" J/L   : Yaw (Rotate around Z)")
-    print("\n [GRIPPER]")
-    print(" SPACE : Close Gripper")
-    print(" C     : Open Gripper")
-    print("\n ESC   : Quit")
-    print("============================================")
+    print("=== SO101 Fully Decoupled Teleop ===")
+    print(" [POSITION] W/S (X), A/D (Y), Q/E (Z)  -> Solved via IK (Joints 0,1,2)")
+    print(" [PITCH]    I/K                        -> Direct Joint Control (Joint 3)")
+    print(" [ROLL]     U/O                        -> Direct Joint Control (Joint 4)")
+    print(" [GRIPPER]  SPACE (Close), C (Open)    -> Direct Joint Control (Joint 5)")
+    print(" [MODIFIER] Hold SHIFT for ultra-precision mode")
+    print(" ESC to Quit")
+    print("====================================")
 
     with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         while viewer.is_running():
+            step_start = time.time()
+            
             if keyboard.is_pressed('esc'):
                 break
 
+            speed_mult = 0.2 if keyboard.is_pressed('shift') else 1.0
+
             dx = np.zeros(3) 
-            dr = np.zeros(3) 
+            pitch_cmd = 0.0
+            roll_cmd = 0.0
+            gripper_cmd = 0.0
             
-            # Position Controls
-            if keyboard.is_pressed('w'): dx[0] += ik_step_size
-            if keyboard.is_pressed('s'): dx[0] -= ik_step_size
-            if keyboard.is_pressed('a'): dx[1] += ik_step_size
-            if keyboard.is_pressed('d'): dx[1] -= ik_step_size
-            if keyboard.is_pressed('q'): dx[2] += ik_step_size
-            if keyboard.is_pressed('e'): dx[2] -= ik_step_size
+            # Position Inputs (Cartesian)
+            if keyboard.is_pressed('w'): dx[0] += base_ik_step * speed_mult
+            if keyboard.is_pressed('s'): dx[0] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('a'): dx[1] += base_ik_step * speed_mult
+            if keyboard.is_pressed('d'): dx[1] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('q'): dx[2] += base_ik_step * speed_mult
+            if keyboard.is_pressed('e'): dx[2] -= base_ik_step * speed_mult
 
-            # Orientation Controls
-            if keyboard.is_pressed('u'): dr[0] += ik_rot_step_size
-            if keyboard.is_pressed('o'): dr[0] -= ik_rot_step_size
-            if keyboard.is_pressed('i'): dr[1] += ik_rot_step_size
-            if keyboard.is_pressed('k'): dr[1] -= ik_rot_step_size
-            if keyboard.is_pressed('j'): dr[2] += ik_rot_step_size
-            if keyboard.is_pressed('l'): dr[2] -= ik_rot_step_size
+            # Pitch Input (Joint Space - Joint 3)
+            if keyboard.is_pressed('i'): pitch_cmd -= base_pitch_step * speed_mult
+            if keyboard.is_pressed('k'): pitch_cmd += base_pitch_step * speed_mult
 
-            # Gripper Controls
-            if keyboard.is_pressed('space'): current_action[5] += gripper_step 
-            if keyboard.is_pressed('c'):     current_action[5] -= gripper_step 
+            # Roll Input (Joint Space - Joint 4)
+            if keyboard.is_pressed('u'): roll_cmd += base_roll_step * speed_mult
+            if keyboard.is_pressed('o'): roll_cmd -= base_roll_step * speed_mult
 
+            # Gripper Input (Joint Space - Joint 5)
+            if keyboard.is_pressed('space'): gripper_cmd += base_gripper * speed_mult
+            if keyboard.is_pressed('c'):     gripper_cmd -= base_gripper * speed_mult
+
+            # 1. Solve IK strictly for X/Y/Z translation using joints 0, 1, 2
             norm_dx = np.linalg.norm(dx)
-            norm_dr = np.linalg.norm(dr)
-
-            # Apply Inverse Kinematics dynamically
-            if norm_dx > 0 or norm_dr > 0:
+            if norm_dx > 0:
                 jacp = np.zeros((3, env.model.nv))
-                jacr = np.zeros((3, env.model.nv))
-                mujoco.mj_jacSite(env.model, env.data, jacp, jacr, site_id)
+                mujoco.mj_jacSite(env.model, env.data, jacp, None, site_id)
                 
-                J_pos = jacp[:, :5]
-                J_rot = jacr[:, :5]
+                # Slice Jacobian to ONLY use Base, Lift, and Elbow
+                J_pos = jacp[:, :3] 
                 lambda_sq = damping ** 2
-
-                if norm_dr == 0:
-                    # Scenario 1: Pure Translation. 
-                    # Drop rotational constraints so the 5-DOF arm doesn't fight itself.
-                    J_dls = J_pos.T @ np.linalg.inv(J_pos @ J_pos.T + lambda_sq * np.eye(3))
-                    delta_q = J_dls @ dx
-                else:
-                    # Scenario 2: Rotation Commanded.
-                    # Use the 6D constraint so it tries to hold its X/Y/Z position while rotating.
-                    # (Note: Minor position drift is physically unavoidable here due to 5-DOF limitation).
-                    J_full = np.vstack([J_pos, J_rot])
-                    twist = np.concatenate([dx, dr])
-                    J_dls = np.linalg.inv(J_full.T @ J_full + lambda_sq * np.eye(5)) @ J_full.T
-                    delta_q = J_dls @ twist
                 
-                new_target = current_action[:5] + delta_q
+                # Damped Least Squares
+                J_dls = J_pos.T @ np.linalg.inv(J_pos @ J_pos.T + lambda_sq * np.eye(3))
+                delta_q = J_dls @ dx
                 
-                # ANTI-WINDUP
-                actual_q = env.data.qpos[:5]
-                new_target = np.clip(new_target, actual_q - max_lead, actual_q + max_lead)
-                
-                current_action[:5] = new_target
+                target_q[:3] += delta_q
 
-            # Enforce hard joint limits
-            current_action = np.clip(current_action, lower_limits, upper_limits)
+                # Anti-Windup specifically for the 3 IK joints
+                actual_q = env.data.qpos[:3]
+                target_q[:3] = np.clip(target_q[:3], actual_q - max_lead, actual_q + max_lead)
 
-            # Step physics and sync viewer
-            env.step(current_action)
+            # 2. Apply Direct Joint Commands (Pitch = idx 3, Roll = idx 4, Gripper = idx 5)
+            target_q[3] += pitch_cmd
+            target_q[4] += roll_cmd
+            target_q[5] += gripper_cmd
+
+            # 3. Enforce Physical Limits globally
+            target_q = np.clip(target_q, lower_limits, upper_limits)
+
+            # Step physics
+            env.step(target_q)
             viewer.sync()
 
     env.close()
