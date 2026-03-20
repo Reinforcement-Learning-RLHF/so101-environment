@@ -1,3 +1,4 @@
+import datetime
 import time
 import os
 import numpy as np
@@ -60,7 +61,8 @@ def main():
     max_lead = 0.05                     
 
     # --- DATA COLLECTION SETUP ---
-    dataset_dir = "./act_dataset"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dataset_dir = f"./act_dataset_{timestamp}"
     episode_idx = 0
     obs_history = []
     action_history = []
