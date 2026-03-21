@@ -68,10 +68,10 @@ def main():
             gripper_cmd = 0.0
             
             # Position Inputs (Cartesian)
-            if keyboard.is_pressed('w'): dx[0] += base_ik_step * speed_mult
-            if keyboard.is_pressed('s'): dx[0] -= base_ik_step * speed_mult
-            if keyboard.is_pressed('a'): dx[1] += base_ik_step * speed_mult
-            if keyboard.is_pressed('d'): dx[1] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('s'): dx[0] += base_ik_step * speed_mult
+            if keyboard.is_pressed('w'): dx[0] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('d'): dx[1] += base_ik_step * speed_mult
+            if keyboard.is_pressed('a'): dx[1] -= base_ik_step * speed_mult
             if keyboard.is_pressed('q'): dx[2] += base_ik_step * speed_mult
             if keyboard.is_pressed('e'): dx[2] -= base_ik_step * speed_mult
 

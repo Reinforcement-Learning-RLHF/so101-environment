@@ -45,5 +45,5 @@ def replay_episode(file_path):
 
 if __name__ == "__main__":
     # Change this to whatever episode number you want to check
-    target_file = "act_dataset/episode_0.hdf5"
+    target_file = "act_dataset_20260321_161742/episode_12.hdf5"
     replay_episode(target_file)

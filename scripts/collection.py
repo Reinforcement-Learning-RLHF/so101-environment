@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import time
 import os
 import numpy as np
@@ -31,8 +31,8 @@ def save_episode(dataset_dir, episode_idx, obs_history, action_history):
         image_main_data = np.array([obs['image_main'] for obs in obs_history])
         image_wrist_data = np.array([obs['image_wrist'] for obs in obs_history])
         
-        image_group.create_dataset('main_observation', data=image_main_data, compression='gzip')
-        image_group.create_dataset('wrist_cam', data=image_wrist_data, compression='gzip')
+        image_group.create_dataset('main_observation', data=image_main_data, compression='lzf')
+        image_group.create_dataset('wrist_cam', data=image_wrist_data, compression='lzf')
         
         root.create_dataset('action', data=action_data)
         
@@ -91,6 +91,7 @@ def main():
             # ==========================================
             if keyboard.is_pressed('enter'):
                 if len(action_history) > 0:
+                    print("saving")
                     save_episode(dataset_dir, episode_idx, obs_history, action_history)
                     episode_idx += 1
                 
@@ -124,10 +125,10 @@ def main():
             gripper_cmd = 0.0
             
             # Position Inputs (Cartesian)
-            if keyboard.is_pressed('w'): dx[0] += base_ik_step * speed_mult
-            if keyboard.is_pressed('s'): dx[0] -= base_ik_step * speed_mult
-            if keyboard.is_pressed('a'): dx[1] += base_ik_step * speed_mult
-            if keyboard.is_pressed('d'): dx[1] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('s'): dx[0] += base_ik_step * speed_mult
+            if keyboard.is_pressed('w'): dx[0] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('d'): dx[1] += base_ik_step * speed_mult
+            if keyboard.is_pressed('a'): dx[1] -= base_ik_step * speed_mult
             if keyboard.is_pressed('q'): dx[2] += base_ik_step * speed_mult
             if keyboard.is_pressed('e'): dx[2] -= base_ik_step * speed_mult
 

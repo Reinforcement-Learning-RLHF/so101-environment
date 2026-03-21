@@ -74,18 +74,18 @@ class ArmEnv:
         mujoco.mj_resetData(self.model, self.data)
         self.episode_id = np.random.randint(0, int(1e6))
 
-        self.data.qpos[self.joint_ids["wrist_roll"]] = - np.pi / 2
+        self.data.qpos[self.joint_ids["wrist_roll"]] = -np.pi/2
 
         # 1. Randomize target cup (Fixed body, so body_pos is fine)
         target_id = self.model.body("target_cup").id
-        self.model.body_pos[target_id][:2] = [0.4 + np.random.uniform(-0.02, 0.02), 
-                                            0.2 + np.random.uniform(-0.02, 0.02)]
+        self.model.body_pos[target_id][:2] = [0.5 + np.random.uniform(-0.01, 0.01), 
+                                            0.1 + np.random.uniform(-0.01, 0.01)]
 
         # 2. Randomize source cup (Freejoint, must use qpos)
         source_id = self.model.body("source_cup").id
         s_q_addr = self.model.jnt_qposadr[self.model.body_jntadr[source_id]]
-        s_x = 0.4 + np.random.uniform(-0.02, 0.02)
-        s_y = -0.2 + np.random.uniform(-0.02, 0.02)
+        s_x = 0.5 + np.random.uniform(-0.01, 0.01)
+        s_y = -0.1 + np.random.uniform(-0.01, 0.01)
         # [x, y, z, qw, qx, qy, qz]
         self.data.qpos[s_q_addr : s_q_addr + 7] = [s_x, s_y, 0.422, 1, 0, 0, 0]
 
