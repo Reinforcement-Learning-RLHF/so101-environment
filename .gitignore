@@ -38,4 +38,4 @@ data_first/
 data_second/
 
 data.zip
-data_second.zip
+data_second.zip*.hdf5
