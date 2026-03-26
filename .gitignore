@@ -41,3 +41,5 @@ data.zip
 data_second.zip*.hdf5
 *.hdf5
 *.zip
+dataset/
+outputs/
