@@ -20,8 +20,6 @@ def replay_episode(file_path):
     print(f"Loaded {num_frames} frames. Press 'Q' to exit.")
 
     for i in range(num_frames):
-        # 1. MuJoCo saved them as (Channels, Height, Width) normalized to [0, 1].
-        # OpenCV needs them as (Height, Width, Channels) scaled to [0, 255].
         main_frame = (np.transpose(main_imgs[i], (1, 2, 0)) * 255).astype(np.uint8)
         wrist_frame = (np.transpose(wrist_imgs[i], (1, 2, 0)) * 255).astype(np.uint8)
         
@@ -37,13 +35,11 @@ def replay_episode(file_path):
         cv2.imshow('Main Camera - Replay', main_frame)
         cv2.imshow('Wrist Camera - Replay', wrist_frame)
         
-        # Wait 16ms to approximate 60 FPS playback. Press 'q' to quit early.
         if cv2.waitKey(16) & 0xFF == ord('q'):
             break
             
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    # Change this to whatever episode number you want to check
-    target_file = "act_dataset_20260324_183142/episode_10.hdf5"
+    target_file = "dataset/episode_5.hdf5"
     replay_episode(target_file)
