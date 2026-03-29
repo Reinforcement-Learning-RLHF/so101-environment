@@ -1,4 +1,4 @@
-from envs.arm_env import ArmEnv
+from envs.cup_env import CupEnv
 from mujoco.viewer import launch
 import numpy as np
 from mujoco.viewer import launch_passive
@@ -6,7 +6,7 @@ import time
 
 
 def main():
-    env = ArmEnv()
+    env = CupEnv()
     
     with launch_passive(env.model, env.data) as viewer:
         while viewer.is_running():

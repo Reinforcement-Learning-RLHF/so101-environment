@@ -3,10 +3,10 @@ import numpy as np
 import mujoco
 import mujoco.viewer
 import keyboard
-from envs.arm_env import ArmEnv
+from envs.cup_env import CupEnv
 
 def main():
-    env = ArmEnv(render_images=False)
+    env = CupEnv(render_images=False)
     env.reset()
 
     site_id = mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_SITE, 'gripperframe')
@@ -74,6 +74,9 @@ def main():
             if keyboard.is_pressed('a'): dx[1] -= base_ik_step * speed_mult
             if keyboard.is_pressed('q'): dx[2] += base_ik_step * speed_mult
             if keyboard.is_pressed('e'): dx[2] -= base_ik_step * speed_mult
+            if keyboard.is_pressed('p'): 
+                print(f"GRASP QPOS: {repr(env.data.qpos[:6])}")
+                time.sleep(0.5)
 
             # Pitch Input (Joint Space - Joint 3)
             if keyboard.is_pressed('i'): pitch_cmd -= base_pitch_step * speed_mult
