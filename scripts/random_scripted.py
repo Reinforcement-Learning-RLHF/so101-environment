@@ -178,7 +178,7 @@ if __name__ == "__main__":
         }
     )
 
-    num_episodes_to_collect = 50 
+    num_episodes_to_collect = 250 
     
     print(f"Starting data collection for {num_episodes_to_collect} episodes...")
 
