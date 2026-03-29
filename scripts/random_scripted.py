@@ -3,8 +3,6 @@ import numpy as np
 import mujoco
 from mujoco.viewer import launch_passive
 from envs.arm_env import ArmEnv
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
-
 
 # --- Robust IK Solver ---
 def ik_jacobian(model, data, target_xyz, site_name="gripperframe", max_iters=100, tol=1e-3, lr=0.5):
@@ -67,13 +65,19 @@ class RandomizedIKPolicy:
             np.array([0.5300,  0.0400, 0.5300])
         ]
         
-        # --- DYNAMIC HOME POSITIONS ---
+        # --- THE FIX: DYNAMIC HOME POSITIONS ---
+        # We use the body names defined in your CupEnv ('source_cup' and 'target_cup')
         source_id = self.env.model.body("source_cup").id
         target_id = self.env.model.body("target_cup").id
 
+        # Use model.body_pos to get the "Reference" position from the XML
+        # Note: If they move during reset, data.xpos is better, but for 
+        # offset calculation, we use the state when you did the calibration.
         self.SOURCE_CUP_HOME = self.env.model.body_pos[source_id].copy()
         self.TARGET_CUP_HOME = self.env.model.body_pos[target_id].copy()
         
+        # In your CupEnv, source_cup uses a joint, so its 'home' might be in qpos
+        # Let's pull the actual world position after a forward pass to be safe
         mujoco.mj_forward(self.env.model, self.env.data)
         self.SOURCE_CUP_HOME = self.env.data.xpos[source_id].copy()
         self.TARGET_CUP_HOME = self.env.data.xpos[target_id].copy()
@@ -105,6 +109,7 @@ class RandomizedIKPolicy:
             q_ik = ik_jacobian(self.env.model, self.env.data, target_xyz)
             
             # Combine IK position with your TELEOP Rotation and Gripper
+            # We take index 4 (Roll) and index 5 (Gripper) from your teleop data
             final_q = np.copy(q_ik)
             final_q[4] = self.perfect_qpos[i][4] # Wrist Roll
             final_q[5] = self.perfect_qpos[i][5] # Gripper
@@ -131,100 +136,36 @@ class RandomizedIKPolicy:
 
         return action
 
-
+# --- Verification Loop ---
 if __name__ == "__main__":
-    # 1. Initialize Env with images enabled!
-    # ACT needs images to learn, so render_images must be True
-    env = ArmEnv(render_images=True, render_width=320, render_height=240) 
+    # Initialize Environment
+    env = ArmEnv() 
     policy = RandomizedIKPolicy(env)
 
-    # 2. Define the LeRobot Dataset Schema
-    # This tells LeRobot exactly what data types and shapes to expect
-    dataset = LeRobotDataset.create(
-        repo_id="Ishah8840/water_pouring_dataset", # Change this!
-        fps=30, # Match your control frequency
-        robot_type="custom_arm",
-        features={
-            "observation.images.main": {
-                "dtype": "video",
-                "shape": (240, 320, 3),
-                "names": ["height", "width", "channel"],
-            },
-            "observation.images.wrist": {
-                "dtype": "video",
-                "shape": (240, 320, 3),
-                "names": ["height", "width", "channel"],
-            },
-            "observation.state": {
-                "dtype": "float32",
-                "shape": (6,),
-                "names": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
-            },
-            "action": {
-                "dtype": "float32",
-                "shape": (6,),
-                "names": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
-            },
-            "next.reward": {
-                "dtype": "float32",
-                "shape": (1,),
-                "names": ["reward"]
-            },
-            "next.done": {
-                "dtype": "bool",
-                "shape": (1,),
-                "names": ["done"]
-            }
-        }
-    )
-
-    num_episodes_to_collect = 250 
+    # Reset both to start fresh
+    obs = env.reset()
+    policy.reset()
     
-    print(f"Starting data collection for {num_episodes_to_collect} episodes...")
-
-    # 3. Data Collection Loop
-    for episode_idx in range(num_episodes_to_collect):
-        obs, info = env.reset()
-        policy.reset()
-        
-        terminated = False
-        truncated = False
-        step_count = 0
-        
-        while not (terminated or truncated):
-            # Get action from your IK policy
+    print("Launching Passive Viewer... Press ESC in viewer to quit.")
+    
+    with launch_passive(env.model, env.data) as viewer:
+        while viewer.is_running():
+            step_start = time.time()
+            
+            # 1. Get smooth joint command from policy
             action = policy.get_action(obs)
             
-            # Step environment
-            next_obs, reward, terminated, truncated, info = env.step(action)
+            # 2. Step the simulation
+            obs, reward, done, info = env.step(action)
 
-            # Construct the frame dictionary for LeRobot
-            # Note: We record the observation BEFORE the action, and the reward AFTER
-            frame = {
-                "observation.images.main": obs["image_main"],
-                "observation.images.wrist": obs["image_wrist"],
-                "observation.state": obs["qpos"].astype(np.float32),
-                "action": action.astype(np.float32),
-                "next.reward": np.array([reward], dtype=np.float32),
-                "next.done": np.array([terminated or truncated], dtype=bool),
-                "task": "Pour water into the target cup" 
-            }
+            # 3. Refresh viewer
+            viewer.sync()
             
-            # Add frame to buffer
-            dataset.add_frame(frame)
+            # Maintain roughly real-time speed (0.01s matches ~100Hz)
+            time.sleep(0.01)
             
-            # Update obs for next loop
-            obs = next_obs
-            step_count += 1
-            
-        # 4. Save the episode to disk once it finishes
-        dataset.save_episode()
-        print(f"Episode {episode_idx + 1}/{num_episodes_to_collect} saved! ({step_count} steps)")
-
-    print("Data collection complete. Consolidating and pushing to Hugging Face Hub...")
-    
-    # 5. Push to Hub (or just leave it locally if you prefer)
-    # If you only want to save locally, you can skip this step. 
-    # The data is already saved in ~/.cache/huggingface/lerobot/
-    dataset.push_to_hub()
-    print("Done!")
+            # Auto-reset loop for visual testing
+            if done:
+                print("Episode Finished. Resetting...")
+                obs = env.reset()
+                policy.reset()
