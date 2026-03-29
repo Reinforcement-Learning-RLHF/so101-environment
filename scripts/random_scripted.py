@@ -65,19 +65,13 @@ class RandomizedIKPolicy:
             np.array([0.5300,  0.0400, 0.5300])
         ]
         
-        # --- THE FIX: DYNAMIC HOME POSITIONS ---
-        # We use the body names defined in your CupEnv ('source_cup' and 'target_cup')
+        # --- DYNAMIC HOME POSITIONS ---
         source_id = self.env.model.body("source_cup").id
         target_id = self.env.model.body("target_cup").id
 
-        # Use model.body_pos to get the "Reference" position from the XML
-        # Note: If they move during reset, data.xpos is better, but for 
-        # offset calculation, we use the state when you did the calibration.
         self.SOURCE_CUP_HOME = self.env.model.body_pos[source_id].copy()
         self.TARGET_CUP_HOME = self.env.model.body_pos[target_id].copy()
         
-        # In your CupEnv, source_cup uses a joint, so its 'home' might be in qpos
-        # Let's pull the actual world position after a forward pass to be safe
         mujoco.mj_forward(self.env.model, self.env.data)
         self.SOURCE_CUP_HOME = self.env.data.xpos[source_id].copy()
         self.TARGET_CUP_HOME = self.env.data.xpos[target_id].copy()
@@ -109,7 +103,6 @@ class RandomizedIKPolicy:
             q_ik = ik_jacobian(self.env.model, self.env.data, target_xyz)
             
             # Combine IK position with your TELEOP Rotation and Gripper
-            # We take index 4 (Roll) and index 5 (Gripper) from your teleop data
             final_q = np.copy(q_ik)
             final_q[4] = self.perfect_qpos[i][4] # Wrist Roll
             final_q[5] = self.perfect_qpos[i][5] # Gripper
@@ -142,8 +135,8 @@ if __name__ == "__main__":
     env = ArmEnv(render_images=False) 
     policy = RandomizedIKPolicy(env)
 
-    # Reset both to start fresh
-    obs = env.reset()
+    # 1. FIXED: Unpack the tuple from reset()
+    obs, info = env.reset()
     policy.reset()
     
     print("Launching Passive Viewer... Press ESC in viewer to quit.")
@@ -152,20 +145,20 @@ if __name__ == "__main__":
         while viewer.is_running():
             step_start = time.time()
             
-            # 1. Get smooth joint command from policy
+            # Get smooth joint command from policy
             action = policy.get_action(obs)
             
-            # 2. Step the simulation
-            obs, reward, done, info = env.step(action)
+            # 2. FIXED: Catch the 5-tuple from step()
+            obs, reward, terminated, truncated, info = env.step(action)
 
-            # 3. Refresh viewer
+            # Refresh viewer
             viewer.sync()
             
             # Maintain roughly real-time speed (0.01s matches ~100Hz)
             time.sleep(0.01)
             
-            # Auto-reset loop for visual testing
-            if done:
+            # 3. FIXED: Check both terminated and truncated for episode end
+            if terminated or truncated:
                 print("Episode Finished. Resetting...")
-                obs = env.reset()
+                obs, info = env.reset()
                 policy.reset()
