@@ -3,7 +3,7 @@ import numpy as np
 import mujoco
 from mujoco.viewer import launch_passive
 from envs.arm_env import ArmEnv
-from lerobot.datasets import LeRobotDataset
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 
 # --- Robust IK Solver ---

@@ -1,26 +1,28 @@
-from huggingface_hub import HfApi
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-def push_to_hub():
-    api = HfApi()
-    repo_id = "Ishah8840/so101-water-pour"
-    folder_path = "outputs/lerobot_dataset"
+# --- Configuration ---
+# Your Hugging Face repository ID
+HF_REPO_ID = "Ishah8840/water_pouring_dataset" 
 
-    print(f"Creating private repository: {repo_id}...")
-    api.create_repo(
-        repo_id=repo_id, 
-        repo_type="dataset", 
-        private=True, 
-        exist_ok=True
+# The absolute path where the data is stored
+LOCAL_DATASET_PATH = "/home/ishan-shah/.cache/huggingface/lerobot/Ishah8840/water_pouring_dataset" 
+# ---------------------
+
+def main():
+    print(f"Loading local dataset from: {LOCAL_DATASET_PATH}...")
+    
+    # We must explicitly define BOTH the repo_id and the root directory
+    dataset = LeRobotDataset(
+        repo_id=HF_REPO_ID,
+        root=LOCAL_DATASET_PATH
     )
-
-    print("Uploading dataset (this might take a few minutes)...")
-    api.upload_folder(
-        folder_path=folder_path,
-        repo_id=repo_id,
-        repo_type="dataset",
-    )
-
-    print("✅ Successfully pushed to Hugging Face!")
+    
+    print(f"Pushing dataset to Hugging Face Hub at: {HF_REPO_ID}...")
+    
+    # Now it knows the correct repo name to push to
+    dataset.push_to_hub()
+    
+    print("Upload complete! You can view your dataset on Hugging Face.")
 
 if __name__ == "__main__":
-    push_to_hub()
+    main()
