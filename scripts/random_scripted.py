@@ -3,6 +3,8 @@ import numpy as np
 import mujoco
 from mujoco.viewer import launch_passive
 from envs.arm_env import ArmEnv
+from lerobot.datasets import LeRobotDataset
+
 
 # --- Robust IK Solver ---
 def ik_jacobian(model, data, target_xyz, site_name="gripperframe", max_iters=100, tol=1e-3, lr=0.5):
@@ -129,36 +131,100 @@ class RandomizedIKPolicy:
 
         return action
 
-# --- Verification Loop ---
+
 if __name__ == "__main__":
-    # Initialize Environment
-    env = ArmEnv(render_images=False) 
+    # 1. Initialize Env with images enabled!
+    # ACT needs images to learn, so render_images must be True
+    env = ArmEnv(render_images=True, render_width=320, render_height=240) 
     policy = RandomizedIKPolicy(env)
 
-    # 1. FIXED: Unpack the tuple from reset()
-    obs, info = env.reset()
-    policy.reset()
+    # 2. Define the LeRobot Dataset Schema
+    # This tells LeRobot exactly what data types and shapes to expect
+    dataset = LeRobotDataset.create(
+        repo_id="Ishah8840/water_pouring_dataset", # Change this!
+        fps=30, # Match your control frequency
+        robot_type="custom_arm",
+        features={
+            "observation.images.main": {
+                "dtype": "video",
+                "shape": (240, 320, 3),
+                "names": ["height", "width", "channel"],
+            },
+            "observation.images.wrist": {
+                "dtype": "video",
+                "shape": (240, 320, 3),
+                "names": ["height", "width", "channel"],
+            },
+            "observation.state": {
+                "dtype": "float32",
+                "shape": (6,),
+                "names": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
+            },
+            "action": {
+                "dtype": "float32",
+                "shape": (6,),
+                "names": ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"],
+            },
+            "next.reward": {
+                "dtype": "float32",
+                "shape": (1,),
+                "names": ["reward"]
+            },
+            "next.done": {
+                "dtype": "bool",
+                "shape": (1,),
+                "names": ["done"]
+            }
+        }
+    )
+
+    num_episodes_to_collect = 50 
     
-    print("Launching Passive Viewer... Press ESC in viewer to quit.")
-    
-    with launch_passive(env.model, env.data) as viewer:
-        while viewer.is_running():
-            step_start = time.time()
-            
-            # Get smooth joint command from policy
+    print(f"Starting data collection for {num_episodes_to_collect} episodes...")
+
+    # 3. Data Collection Loop
+    for episode_idx in range(num_episodes_to_collect):
+        obs, info = env.reset()
+        policy.reset()
+        
+        terminated = False
+        truncated = False
+        step_count = 0
+        
+        while not (terminated or truncated):
+            # Get action from your IK policy
             action = policy.get_action(obs)
             
-            # 2. FIXED: Catch the 5-tuple from step()
-            obs, reward, terminated, truncated, info = env.step(action)
+            # Step environment
+            next_obs, reward, terminated, truncated, info = env.step(action)
 
-            # Refresh viewer
-            viewer.sync()
+            # Construct the frame dictionary for LeRobot
+            # Note: We record the observation BEFORE the action, and the reward AFTER
+            frame = {
+                "observation.images.main": obs["image_main"],
+                "observation.images.wrist": obs["image_wrist"],
+                "observation.state": obs["qpos"],
+                "action": action,
+                "next.reward": float(reward),
+                "next.done": terminated or truncated,
+                "task": "Pour water into the target cup" # Required for ACT conditioning
+            }
             
-            # Maintain roughly real-time speed (0.01s matches ~100Hz)
-            time.sleep(0.01)
+            # Add frame to buffer
+            dataset.add_frame(frame)
             
-            # 3. FIXED: Check both terminated and truncated for episode end
-            if terminated or truncated:
-                print("Episode Finished. Resetting...")
-                obs, info = env.reset()
-                policy.reset()
+            # Update obs for next loop
+            obs = next_obs
+            step_count += 1
+            
+        # 4. Save the episode to disk once it finishes
+        dataset.save_episode()
+        print(f"Episode {episode_idx + 1}/{num_episodes_to_collect} saved! ({step_count} steps)")
+
+    print("Data collection complete. Consolidating and pushing to Hugging Face Hub...")
+    
+    # 5. Push to Hub (or just leave it locally if you prefer)
+    # If you only want to save locally, you can skip this step. 
+    # The data is already saved in ~/.cache/huggingface/lerobot/
+    dataset.push_to_hub()
+    print("Done!")
