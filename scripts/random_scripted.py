@@ -203,11 +203,11 @@ if __name__ == "__main__":
             frame = {
                 "observation.images.main": obs["image_main"],
                 "observation.images.wrist": obs["image_wrist"],
-                "observation.state": obs["qpos"],
-                "action": action,
-                "next.reward": float(reward),
-                "next.done": terminated or truncated,
-                "task": "Pour water into the target cup" # Required for ACT conditioning
+                "observation.state": obs["qpos"].astype(np.float32),
+                "action": action.astype(np.float32),
+                "next.reward": np.array([reward], dtype=np.float32),
+                "next.done": np.array([terminated or truncated], dtype=bool),
+                "task": "Pour water into the target cup" 
             }
             
             # Add frame to buffer
