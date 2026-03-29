@@ -3,10 +3,10 @@ import numpy as np
 import mujoco
 import mujoco.viewer
 import keyboard
-from envs.cup_env import CupEnv
+from envs.arm_env import ArmEnv
 
 def main():
-    env = CupEnv(render_images=False)
+    env = ArmEnv(render_images=False)
     env.reset()
 
     site_id = mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_SITE, 'gripperframe')

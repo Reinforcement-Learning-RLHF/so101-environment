@@ -115,19 +115,6 @@ class ArmEnv:
                 self.data.qvel[v_addr : v_addr + 6] = 0.0
                 particle_count += 1
 
-        # 4. Domain Randomization (Friction/Mass/Light)
-        table_id = self.model.geom("table_top").id
-        self.model.geom_friction[table_id][0] = np.random.uniform(0.8, 1.2)
-        self.model.body_mass[source_id] = np.random.uniform(0.04, 0.07)
-        
-        # Randomize light and camera
-        self.model.light_diffuse[0] = np.random.uniform(0.5, 0.8, 3)
-        cam_id = self.model.camera("main_observation").id
-        self.model.cam_pos[cam_id] = np.array([1.2, 0.0, 1.3]) + np.random.uniform(-0.02, 0.02, 3)
-
-        # 5. CRITICAL: Settle Period
-        # Teleporting objects creates "numerical shock." 
-        # We run 50 steps of pure physics to let the water drop into the cup.
         mujoco.mj_forward(self.model, self.data)
         for _ in range(50):
             mujoco.mj_step(self.model, self.data)

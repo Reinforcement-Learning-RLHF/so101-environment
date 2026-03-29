@@ -2,7 +2,6 @@ import time
 import numpy as np
 import mujoco
 from mujoco.viewer import launch_passive
-from envs.cup_env import CupEnv
 from envs.arm_env import ArmEnv
 
 # --- Robust IK Solver ---

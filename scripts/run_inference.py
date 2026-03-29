@@ -1,38 +1,62 @@
-import torch
-import numpy as np
-import torch.nn.functional as F
-import mujoco.viewer
+import time
+from pathlib import Path
+from envs.arm_env import ArmEnv
 from lerobot.policies.act.modeling_act import ACTPolicy
-from envs.arm_env import ArmEnv 
+from mujoco.viewer import launch_passive
+import numpy as np
+import torch
 
-def run_test():
-    ckpt_path = "so101_100k_policy"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    policy = ACTPolicy.from_pretrained(ckpt_path)
-    policy.eval()
-    policy.to(device)
+# Path to your pretrained policy
+policy_dir = Path("policies/so101_100k_policy")
 
+
+def format_obs_for_act(obs, device="cpu"):
+    """
+    Reformat ArmEnv observation dict to the keys expected by ACT,
+    converting everything to torch tensors.
+    """
+    act_obs = {
+        # Only qpos for ACT robot state
+        "observation.state": torch.tensor(
+            obs["qpos"],  # <--- only positions, not qvel
+            dtype=torch.float32,
+            device=device
+        ).unsqueeze(0),  # add batch dimension
+        "observation.images.main": torch.tensor(
+            obs["image_main"], dtype=torch.float32, device=device
+        ).unsqueeze(0),
+        "observation.images.wrist": torch.tensor(
+            obs["image_wrist"], dtype=torch.float32, device=device
+        ).unsqueeze(0),
+        "episode_id": torch.tensor([obs["episode_id"]], dtype=torch.int64, device=device),
+        "step": torch.tensor([obs["step"]], dtype=torch.int64, device=device)
+    }
+    return act_obs
+
+
+if __name__ == "__main__":
     env = ArmEnv(render_images=True)
+    policy = ACTPolicy.from_pretrained(policy_dir)
     obs = env.reset()
+    policy.reset()
 
-    with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
+    print("Launching Passive Viewer... Press ESC in viewer to quit.")
+
+    with launch_passive(env.model, env.data) as viewer:
+        done = False
         while viewer.is_running():
-            policy_input = {
-                "observation.images.main": torch.from_numpy(obs["image_main"]).unsqueeze(0).to(device).float(),
-                "observation.images.wrist": torch.from_numpy(obs["image_wrist"]).unsqueeze(0).to(device).float(),
-                "observation.state": torch.from_numpy(obs["qpos"]).unsqueeze(0).to(device).float(),
-            }
+            # Wrap observation for ACT
+            act_obs = format_obs_for_act(obs, device="cpu")
+            action = policy.select_action(act_obs)
+            action = action.squeeze(0).numpy()
 
-            with torch.no_grad():
-                action = policy.select_action(policy_input).cpu().numpy()
-
+            # Step environment
             obs, reward, done, info = env.step(action)
+
+            # Refresh viewer
             viewer.sync()
 
             if done:
-                print(f"Done — success: {info['is_success']}")
+                print("Episode finished. Resetting...")
                 obs = env.reset()
-
-if __name__ == "__main__":
-    run_test()
+                policy.reset()
