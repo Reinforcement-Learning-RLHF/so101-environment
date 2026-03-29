@@ -151,12 +151,12 @@ class ArmEnv:
         inside = np.all(np.abs(p_pos - target_pos) <= cup_halfsize, axis=1)
         
         success_ratio = np.mean(inside)
-        done = success_ratio > 0.9 or self.curr_step >= self.max_steps
+        done = success_ratio > 0.8 or self.curr_step >= self.max_steps
         
         # Reward for evaluation (ACT doesn't use it for training)
         reward = success_ratio 
 
-        return obs, reward, done, {"is_success": success_ratio > 0.9}
+        return obs, reward, done, {"is_success": success_ratio > 0.8}
 
     def close(self):
         pass
