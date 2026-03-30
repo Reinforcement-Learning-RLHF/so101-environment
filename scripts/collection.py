@@ -32,11 +32,10 @@ def collect_data():
         fps=FPS,
         robot_type="so101",
         features={
-            "observation.images.front": {"dtype": "image", "shape": [3, 240, 320], "names": ["c", "h", "w"]},
-            "observation.images.wrist": {"dtype": "image", "shape": [3, 240, 320], "names": ["c", "h", "w"]},
-            "observation.state": {"dtype": "float32", "shape": [6], "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
-            "action": {"dtype": "float32", "shape": [6], "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
-            "task": {"dtype": "string"},
+            "observation.images.front": {"dtype": "image", "shape": (240, 320, 3), "names": ["height", "width", "channel"]},
+            "observation.images.wrist": {"dtype": "image", "shape": (240, 320, 3), "names": ["height", "width", "channel"]},
+            "observation.state": {"dtype": "float32", "shape": (6,), "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
+            "action": {"dtype": "float32", "shape": (6,), "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
         }
     )
 
@@ -59,10 +58,10 @@ def collect_data():
             # B. Package the frame
             # Note: We transpose images to (C, H, W) for LeRobot/PyTorch
             frame = {
-                "observation.images.front": obs["images/front"].transpose(2, 0, 1).astype(np.uint8),
-                "observation.images.wrist": obs["images/wrist"].transpose(2, 0, 1).astype(np.uint8),
-                "observation.state": obs["qpos"],
-                "action": action,
+                "observation.images.front": obs["images/front"].astype(np.uint8),
+                "observation.images.wrist": obs["images/wrist"].astype(np.uint8),
+                "observation.state": np.asarray(obs["qpos"], dtype=np.float32).reshape(6),
+                "action": np.asarray(action, dtype=np.float32).reshape(6),
                 "task": TASK_STR,
             }
             episode_buffer.append(frame)
@@ -91,7 +90,7 @@ def collect_data():
 
     # 3. Finalize: Calculates stats (min/max/mean/std) and writes meta.json
     print("Finalizing dataset and calculating statistics...")
-    dataset.consolidate()
+    dataset.finalize()
     print(f"Dataset complete! Saved to {LOCAL_DIR}")
 
 if __name__ == "__main__":
