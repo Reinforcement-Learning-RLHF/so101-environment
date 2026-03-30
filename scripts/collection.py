@@ -4,13 +4,14 @@ import os
 from pathlib import Path
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from envs.arm_env import ArmEnv # Ensure this is your SO101ActEnv
-from scripts.random_scripted import RandomizedIKPolicy
+from random_scripted import RandomizedIKPolicy
 
 # --- Configuration ---
 REPO_ID = "Ishah8840/so101_pouring"
 LOCAL_DIR = Path("data/lerobot/so101_pouring")
 FPS = 50 
 TOTAL_SUCCESSES_NEEDED = 200
+TASK_STR = "Pour the water from the source cup into the target cup."
 
 def collect_data():
     # Initialize Environment
@@ -35,6 +36,7 @@ def collect_data():
             "observation.images.wrist": {"dtype": "image", "shape": [3, 240, 320], "names": ["c", "h", "w"]},
             "observation.state": {"dtype": "float32", "shape": [6], "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
             "action": {"dtype": "float32", "shape": [6], "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
+            "task": {"dtype": "string"},
         }
     )
 
@@ -61,6 +63,7 @@ def collect_data():
                 "observation.images.wrist": obs["images/wrist"].transpose(2, 0, 1).astype(np.uint8),
                 "observation.state": obs["qpos"],
                 "action": action,
+                "task": TASK_STR,
             }
             episode_buffer.append(frame)
 
