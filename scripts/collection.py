@@ -10,12 +10,12 @@ from random_scripted import RandomizedIKPolicy
 REPO_ID = "Ishah8840/so101_pouring"
 LOCAL_DIR = Path("data/lerobot/so101_pouring")
 FPS = 50 
-TOTAL_SUCCESSES_NEEDED = 200
+TOTAL_SUCCESSES_NEEDED = 250
 TASK_STR = "Pour the water from the source cup into the target cup."
 
 def collect_data():
     # Initialize Environment
-    env = ArmEnv(max_steps=550)
+    env = ArmEnv(max_steps=650)
     policy = RandomizedIKPolicy(env)
 
     # 1. Initialize LeRobot Dataset
@@ -51,7 +51,7 @@ def collect_data():
         is_actually_successful = False
 
         # Run the episode
-        for _ in range(550):
+        for _ in range(650):
             # A. Get action based on the observation BEFORE stepping
             action = policy.get_action(obs)
             
