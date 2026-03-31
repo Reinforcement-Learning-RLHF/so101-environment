@@ -101,5 +101,5 @@ class ArmEnv:
         success_ratio = np.mean(inside)
 
         obs = self.get_obs()
-        done = success_ratio > 0.7 or self.curr_step >= self.max_steps
+        done = self.curr_step >= self.max_steps
         return obs, float(success_ratio), done, {"is_success": success_ratio > 0.7}

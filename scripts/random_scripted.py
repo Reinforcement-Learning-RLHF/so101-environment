@@ -65,7 +65,7 @@ class RandomizedIKPolicy:
         self.offsets = [xyz - (self.SOURCE_CUP_HOME if i <= 2 else self.TARGET_CUP_HOME) 
                         for i, xyz in enumerate(self.calibrated_xyz)]
 
-        self.keyframe_steps = [30, 20, 30, 30, 40]
+        self.keyframe_steps = [100, 100, 100, 100, 100]
         self.reset()
 
     def normalize(self, qpos_radians):
@@ -125,7 +125,7 @@ class RandomizedIKPolicy:
 
 # --- Verification Loop ---
 if __name__ == "__main__":
-    env = ArmEnv() 
+    env = ArmEnv(max_steps=650) 
     policy = RandomizedIKPolicy(env)
 
     # Note: ArmEnv.reset() returns (obs, info) in newer Gymnasium

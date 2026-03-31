@@ -1,8 +1,8 @@
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
-import torch
+import pandas as pd
+import numpy as np
 
-ds = LeRobotDataset("Ishah8840/so101_pouring", root="data/lerobot/so101_pouring")
-# Compare frame 0 and frame 100
-f0 = ds[0]["observation.images.wrist"]
-f100 = ds[100]["observation.images.wrist"]
-print(f"Pixel Difference: {(f0.float() - f100.float()).abs().mean().item()}")
+df = pd.read_parquet("data/lerobot/so101_pouring/data/chunk-000/file-000.parquet")
+actions = np.stack(df["action"].values)
+
+print(f"Episode frames: {len(df)}")
+print(f"Episode duration: {len(df)/50:.1f} seconds")
