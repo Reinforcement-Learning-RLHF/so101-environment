@@ -4,6 +4,7 @@ import mujoco
 from mujoco.viewer import launch_passive
 # Assuming your new class name from the previous step
 from envs.arm_env import ArmEnv 
+import matplotlib.pyplot as plt
 
 # --- Robust IK Solver ---
 # (Keep your ik_jacobian function exactly as it is, it works in Radian space)

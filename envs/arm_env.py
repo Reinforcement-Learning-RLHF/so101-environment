@@ -93,7 +93,7 @@ class ArmEnv:
 
         for _ in range(10):
             mujoco.mj_step(self.model, self.data)
-
+        
         # Reward/Success Logic
         target_pos = self.data.xpos[self.model.body("target_cup").id]
         p_pos = self.data.xpos[self.particle_indices]
