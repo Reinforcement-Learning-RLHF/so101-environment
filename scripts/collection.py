@@ -6,8 +6,8 @@ from random_scripted import RandomizedIKPolicy
 
 REPO_ID = "Ishah8840/so101_pouring"
 LOCAL_DIR = Path("data/lerobot/so101_pouring")
-FPS = 60
-TOTAL_SUCCESSES_NEEDED = 1
+FPS = 10
+TOTAL_SUCCESSES_NEEDED = 60
 TASK_STR = "Pour the water from the source cup into the target cup."
 
 def collect_data():
