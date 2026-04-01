@@ -1,8 +1,7 @@
-import pandas as pd
-import numpy as np
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-df = pd.read_parquet("data/lerobot/so101_pouring/data/chunk-000/file-000.parquet")
-actions = np.stack(df["action"].values)
+# Load the local dataset
+dataset = LeRobotDataset("Ishah8840/so101_pouring", root="data/lerobot/so101_pouring")
 
-print(f"Episode frames: {len(df)}")
-print(f"Episode duration: {len(df)/50:.1f} seconds")
+# Push to Hugging Face Hub
+dataset.push_to_hub()

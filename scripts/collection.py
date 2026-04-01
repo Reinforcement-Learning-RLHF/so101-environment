@@ -1,26 +1,19 @@
 import numpy as np
-import torch
-import os
 from pathlib import Path
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from envs.arm_env import ArmEnv # Ensure this is your SO101ActEnv
+from envs.arm_env import ArmEnv
 from random_scripted import RandomizedIKPolicy
 
-# --- Configuration ---
 REPO_ID = "Ishah8840/so101_pouring"
 LOCAL_DIR = Path("data/lerobot/so101_pouring")
-FPS = 50 
-TOTAL_SUCCESSES_NEEDED = 60
+FPS = 60
+TOTAL_SUCCESSES_NEEDED = 1
 TASK_STR = "Pour the water from the source cup into the target cup."
 
 def collect_data():
-    # Initialize Environment
-    env = ArmEnv(max_steps=650)
+    env = ArmEnv(max_steps=160)
     policy = RandomizedIKPolicy(env)
 
-    # 1. Initialize LeRobot Dataset
-    # If the dataset already exists locally, this might throw an error. 
-    # Use 'create' for new datasets or 'LeRobotDataset(repo_id, root=...)' to append.
     if LOCAL_DIR.exists():
         import shutil
         print(f"Cleaning up existing data at {LOCAL_DIR}")
@@ -32,10 +25,26 @@ def collect_data():
         fps=FPS,
         robot_type="so101",
         features={
-            "observation.images.front": {"dtype": "image", "shape": (240, 320, 3), "names": ["height", "width", "channel"]},
-            "observation.images.wrist": {"dtype": "image", "shape": (240, 320, 3), "names": ["height", "width", "channel"]},
-            "observation.state": {"dtype": "float32", "shape": (6,), "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
-            "action": {"dtype": "float32", "shape": (6,), "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]},
+            "observation.images.front": {
+                "dtype": "image",
+                "shape": (240, 320, 3),
+                "names": ["height", "width", "channel"]
+            },
+            "observation.images.wrist": {
+                "dtype": "image",
+                "shape": (240, 320, 3),
+                "names": ["height", "width", "channel"]
+            },
+            "observation.state": {
+                "dtype": "float32",
+                "shape": (6,),
+                "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+            },
+            "action": {
+                "dtype": "float32",
+                "shape": (6,),
+                "names": ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+            },
         }
     )
 
@@ -44,37 +53,31 @@ def collect_data():
 
     while success_count < TOTAL_SUCCESSES_NEEDED:
         attempt_count += 1
-        obs = env.reset() # Handled the (obs, info) unpack
+
+        obs, info = env.reset()  # ✅ unpack (obs, info)
         policy.reset()
-        
+
         episode_buffer = []
         is_actually_successful = False
 
-        # Run the episode
-        for _ in range(650):
-            # A. Get action based on the observation BEFORE stepping
+        for _ in range(160):
             action = policy.get_action(obs)
-            
+
             frame = {
-                "observation.images.front": obs["images/front"].astype(np.uint8),
-                "observation.images.wrist": obs["images/wrist"].astype(np.uint8),
-                "observation.state": np.asarray(obs["qpos"], dtype=np.float32).reshape(6),
-                "action": np.asarray(action, dtype=np.float32).reshape(6),
+                "observation.images.front": obs["pixels"]["front"].astype(np.uint8),   # ✅ new key
+                "observation.images.wrist": obs["pixels"]["wrist"].astype(np.uint8),   # ✅ new key
+                "observation.state": obs["agent_pos"].copy().astype(np.float32),        # ✅ from obs, raw radians
+                "action": action.astype(np.float32),                                    # ✅ raw radians, no denorm
                 "task": TASK_STR,
             }
+
             episode_buffer.append(frame)
 
-            # C. Step the environment
-            obs, reward, done, info = env.step(action)
-            
-            # Check success flag from your ArmEnv logic
+            obs, reward, terminated, truncated, info = env.step(action)  # ✅ 5 values
+
             if info.get("is_success", False):
                 is_actually_successful = True
 
-            if done:
-                break
-
-        # 2. Only commit to Parquet if the 'is_success' flag was ever triggered
         if is_actually_successful:
             for frame in episode_buffer:
                 dataset.add_frame(frame)
@@ -82,12 +85,11 @@ def collect_data():
             success_count += 1
             print(f"✅ Episode {success_count} saved — {len(episode_buffer)} frames")
         else:
-            print(f"❌ Attempt {attempt_count} failed. Discarding buffer.")
+            print(f"❌ Attempt {attempt_count} failed. Discarding.")
 
-    # 3. Finalize: Calculates stats (min/max/mean/std) and writes meta.json
-    print("Finalizing dataset and calculating statistics...")
+    print("Finalizing dataset...")
     dataset.finalize()
-    print(f"Dataset complete! Saved to {LOCAL_DIR}")
+    print(f"Done! Saved to {LOCAL_DIR}")
 
 if __name__ == "__main__":
     collect_data()
