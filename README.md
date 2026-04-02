@@ -1,56 +1,76 @@
-# Preference Learning SO-101
+# SO-101 Pouring Environment
 
-This repository focuses on developing preference learning algorithms for the **SO-101 robot arm**. The project involves training reward models and implementing imitation learning techniques.
+This repository contains an environment for the **SO-101 robot arm** to perform a *cup pouring task*.  
+It supports collecting demos using a scripted controller, pushing datasets to the LeRobot Hub, and running inference in MuJoCo simulation.
+
+---
 
 ## 🛠 Installation & Setup
 
 ### 1. Prerequisites
-Ensure you have [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or Anaconda installed.
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or Anaconda
+- [MuJoCo](https://mujoco.org/) installed and properly configured
 
 ### 2. Create Environment
 ```bash
-# Create and activate a new python 3.10 environment
+# Create a Python 3.10 environment
 conda create -n so101 python=3.10 -y
 conda activate so101
-
-```
+````
 
 ### 3. Install Dependencies
 
 ```bash
-# Install required libraries
+# Install project dependencies
 pip install -r requirements.txt
 
-# Install the project in editable mode (Fixes ModuleNotFoundError)
+# Install the project in editable mode
 pip install -e .
-
 ```
 
 ---
 
 ## 🚀 Usage
 
-### Visualization
+### 1. Collect Demos
 
-To verify the MuJoCo model and environment setup are working correctly, run the visualization script:
+Collect demos of the SO-101 pouring using the scripted controller:
 
 ```bash
-python scripts/visualize.py
+python scripts/collection.py
+```
 
+This will generate a dataset of trajectories you can later use for training or analysis.
+
+### 2. Push Dataset to LeRobot Hub
+
+After collecting demos, push your dataset to the LeRobot Hub
+
+### 3. Run Inference in MuJoCo
+
+Load a trained policy and run it in simulation:
+
+```bash
+python scripts/inference.py
 ```
 
 ---
 
 ## 📁 Project Structure
 
-* **`envs/`**: Core environment definitions, including `ArmEnv` for MuJoCo interfacing.
-* **`models/`**: MuJoCo XML configuration files and 3D mesh assets for the SO-101.
-* **`scripts/`**: Utility scripts for testing, visualization, and data collection.
-* **`setup.py`**: Configuration for installing the project as a local Python package.
+* **envs/**: Robot environment definitions for MuJoCo
+* **models/**: SO-101 XML and 3D assets
+* **scripts/**: Utility scripts for demo collection, visualization, and evaluation
+* **data/**: Folder to store local datasets
+* **setup.py**: Local package installation configuration
 
 ---
 
-## 🧪 Ongoing Research
+## 🧪 Features
 
-* **Preference Learning**: Training agents based on human feedback on the SO-101 platform.
-* **Policy Architectures**: Implementing imitation learning policies for baseline robot control.
+* Scripted demo collection for the SO-101 pouring task
+* Integration with the LeRobot Hub for dataset storage and sharing
+* MuJoCo inference for testing policies in simulation
+* Support for both human visualization and automated evaluation
+Do you want me to do that?
+```
