@@ -72,5 +72,3 @@ python scripts/inference.py
 * Integration with the LeRobot Hub for dataset storage and sharing
 * MuJoCo inference for testing policies in simulation
 * Support for both human visualization and automated evaluation
-Do you want me to do that?
-```
