@@ -124,11 +124,8 @@ class ArmEnv(gym.Env):
             self.ctrl_limits[:, 1],
         )
 
-        # policy 1
         for _ in range(10):
             mujoco.mj_step(self.model, self.data)
-
-        # mujoco.mj_step(self.model, self.data)
 
         # Success: fraction of water particles inside target cup
         target_pos = self.data.xpos[self.model.body("target_cup").id]
