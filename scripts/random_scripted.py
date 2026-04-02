@@ -46,10 +46,10 @@ class RandomizedIKPolicy:
 
         self.calibrated_xyz = [
             np.array([0.4617, -0.0801, 0.4398]),
-            np.array([0.5228, -0.0955, 0.4399]),
+            np.array([0.5228, -0.0850, 0.4399]),
             np.array([0.5265, -0.0971, 0.4492]),
-            np.array([0.5275,  0.0315, 0.5209]),
-            np.array([0.5300,  0.0400, 0.5300])
+            np.array([0.5275,  0.0415, 0.5209]),
+            np.array([0.5300,  0.0500, 0.5300])
         ]
 
         mujoco.mj_forward(self.env.model, self.env.data)
@@ -109,19 +109,21 @@ class RandomizedIKPolicy:
 
 
 if __name__ == "__main__":
-    env = ArmEnv(max_steps=160)
+    env = ArmEnv(max_steps=200)
     policy = RandomizedIKPolicy(env)
 
     obs, info = env.reset()
     policy.reset()
 
     with launch_passive(env.model, env.data) as viewer:
+        steps = 0
         while viewer.is_running():
             action = policy.get_action(obs)
             obs, reward, terminated, truncated, info = env.step(action)
 
             viewer.sync()
+            steps += 1
 
-            if terminated or truncated:
+            if (terminated or truncated):
                 obs, info = env.reset()
                 policy.reset()

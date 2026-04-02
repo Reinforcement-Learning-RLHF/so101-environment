@@ -11,7 +11,7 @@ TOTAL_SUCCESSES_NEEDED = 60
 TASK_STR = "Pour the water from the source cup into the target cup."
 
 def collect_data():
-    env = ArmEnv(max_steps=160)
+    env = ArmEnv(max_steps=220)
     policy = RandomizedIKPolicy(env)
 
     if LOCAL_DIR.exists():
@@ -60,7 +60,7 @@ def collect_data():
         episode_buffer = []
         is_actually_successful = False
 
-        for _ in range(160):
+        for _ in range(220):
             action = policy.get_action(obs)
 
             frame = {

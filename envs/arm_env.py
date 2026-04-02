@@ -118,15 +118,17 @@ class ArmEnv(gym.Env):
     def step(self, action):
         self.curr_step += 1
 
-        # Clip to hardware limits and apply directly — no denormalization
         self.data.ctrl[:] = np.clip(
             action,
             self.ctrl_limits[:, 0],
             self.ctrl_limits[:, 1],
         )
 
-        for _ in range(50):
+        # policy 1
+        for _ in range(10):
             mujoco.mj_step(self.model, self.data)
+
+        # mujoco.mj_step(self.model, self.data)
 
         # Success: fraction of water particles inside target cup
         target_pos = self.data.xpos[self.model.body("target_cup").id]
@@ -134,10 +136,11 @@ class ArmEnv(gym.Env):
         inside = np.all(np.abs(p_pos - target_pos) <= [0.02, 0.02, 0.033], axis=1)
         success_ratio = float(np.mean(inside))
 
-        terminated = success_ratio > 0.7
+        terminated = False
+        success = success_ratio > 0.7
         truncated = self.curr_step >= self.max_steps
 
-        return self.get_obs(), success_ratio, terminated, truncated, {"is_success": terminated}
+        return self.get_obs(), success_ratio, terminated, truncated, {"is_success": success}
 
     def close(self):
         self.renderer.close()

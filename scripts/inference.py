@@ -6,7 +6,7 @@ from lerobot.policies.act.modeling_act import ACTPolicy
 from lerobot.policies.factory import make_pre_post_processors
 from envs.arm_env import ArmEnv
 
-POLICY_PATH = "policies/20k_policy"
+POLICY_PATH = "policies/50k_policy"
 DATASET_PATH = "/home/ishan-shah/Projects/preference-learning-so101/data/lerobot/so101_pouring"  # needed for normalization stats
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -24,13 +24,13 @@ preprocessor, postprocessor = make_pre_post_processors(
     dataset_stats=dataset.meta.stats
 )
 
-env = ArmEnv(max_steps=160)
+env = ArmEnv(max_steps=200)
 obs, info = env.reset()
 policy.reset()
 
 with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
     step = 0
-    while viewer.is_running() and step < 160:
+    while viewer.is_running() and step < 200:
 
         state_tensor = torch.from_numpy(obs["agent_pos"]).float().unsqueeze(0).to(DEVICE)
 
@@ -59,7 +59,7 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         viewer.sync()
         step += 1
 
-        if terminated or truncated and step >= 160:  # ✅ check both
+        if (terminated or truncated):  # ✅ check both
             print(f"Done — reward: {reward:.3f}, success: {info['is_success']}")
             obs, info = env.reset()
             policy.reset()
