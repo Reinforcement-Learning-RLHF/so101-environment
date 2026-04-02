@@ -24,13 +24,13 @@ preprocessor, postprocessor = make_pre_post_processors(
     dataset_stats=dataset.meta.stats
 )
 
-env = ArmEnv(max_steps=650)
+env = ArmEnv(max_steps=160)
 obs, info = env.reset()
 policy.reset()
 
 with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
     step = 0
-    while viewer.is_running() and step < 650:
+    while viewer.is_running() and step < 160:
 
         state_tensor = torch.from_numpy(obs["agent_pos"]).float().unsqueeze(0).to(DEVICE)
 
@@ -59,7 +59,7 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         viewer.sync()
         step += 1
 
-        if terminated or truncated:  # ✅ check both
+        if terminated or truncated and step >= 160:  # ✅ check both
             print(f"Done — reward: {reward:.3f}, success: {info['is_success']}")
             obs, info = env.reset()
             policy.reset()
