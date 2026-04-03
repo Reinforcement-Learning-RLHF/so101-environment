@@ -7,7 +7,7 @@ from lerobot.policies.factory import make_pre_post_processors
 from envs.arm_env import ArmEnv
 
 POLICY_PATH = "policies/50k_policy"
-DATASET_PATH = "/home/ishan-shah/Projects/preference-learning-so101/data/lerobot/so101_pouring"  # needed for normalization stats
+DATASET_PATH = "/home/ishan-shah/Projects/preference-learning-so101/data/lerobot/so101_pouring"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load policy
@@ -59,7 +59,7 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         viewer.sync()
         step += 1
 
-        if (terminated or truncated):  # ✅ check both
+        if (terminated or truncated):
             print(f"Done — reward: {reward:.3f}, success: {info['is_success']}")
             obs, info = env.reset()
             policy.reset()
