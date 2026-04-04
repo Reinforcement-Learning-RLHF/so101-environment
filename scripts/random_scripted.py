@@ -1,3 +1,20 @@
+"""
+Randomized Inverse Kinematics (IK) Policy for SO101 Arm
+
+This module provides:
+1. An IK solver using the Jacobian pseudo-inverse method to reach target positions.
+2. A `RandomizedIKPolicy` that generates smooth, keyframe-based joint trajectories
+   for the SO101 robot to perform tasks like picking and pouring cups.
+
+Features:
+- Keyframe-based motion planning with offsets for source and target cups.
+- Smooth interpolation between joint positions.
+- Uses MuJoCo for kinematics and physics simulation.
+- Can be visualized interactively using Mujoco passive viewer.
+
+rest it out using python scripts/random_scripted.py
+"""
+
 import time
 import numpy as np
 import mujoco

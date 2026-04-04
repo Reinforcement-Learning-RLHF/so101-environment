@@ -1,3 +1,20 @@
+"""
+Run Pretrained ACTPolicy on SO101 Pouring Task with MuJoCo Viewer
+
+This script loads a pretrained ACTPolicy for the SO101 robot performing
+the "Pour the water from the source cup into the target cup" task. It runs
+the policy in a Mujoco environment while rendering the simulation in real-time.
+
+Key Features:
+- Loads a pretrained ACTPolicy from a local path.
+- Uses dataset statistics to preprocess observations and postprocess actions.
+- Renders environment using `mujoco.viewer.launch_passive`.
+- Handles both front and wrist camera images along with joint state inputs.
+- Resets environment and policy on episode termination or truncation.
+
+Run using python scripts/inference.py
+"""
+
 import torch
 import mujoco
 import mujoco.viewer
@@ -6,8 +23,8 @@ from lerobot.policies.act.modeling_act import ACTPolicy
 from lerobot.policies.factory import make_pre_post_processors
 from envs.arm_env import ArmEnv
 
-POLICY_PATH = "policies/50k_policy"
-DATASET_PATH = "/home/ishan-shah/Projects/preference-learning-so101/data/lerobot/so101_pouring"
+POLICY_PATH = "Ishah8840/so101_act_policy"     # Path to pretrained ACTPolicy
+DATASET_PATH = "Ishah8840/so101_pouring" # Path to dataset
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load policy

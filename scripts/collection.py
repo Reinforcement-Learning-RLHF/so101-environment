@@ -1,11 +1,29 @@
+"""
+Data Collection Script for SO101 Pouring Task
+
+This script collects demonstration data for the SO101 robot performing a
+"Pour the water from the source cup into the target cup" task. The data
+includes front and wrist camera images, joint states, and actions, which
+are stored in a LeRobotDataset for training robot learning models.
+
+Key Features:
+- Uses a randomized inverse kinematics (IK) policy to perform the task.
+- Collects multiple successful episodes until a predefined number of
+  successes is reached.
+- Saves image, state, and action data per frame.
+- Supports automatic cleanup of existing datasets before collection.
+
+run it using python scripts/collection.py
+"""
+
 import numpy as np
 from pathlib import Path
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from envs.arm_env import ArmEnv
 from random_scripted import RandomizedIKPolicy
 
-REPO_ID = "Ishah8840/so101_pouring"
-LOCAL_DIR = Path("data/lerobot/so101_pouring")
+REPO_ID = "Ishah8840/so101_pouring"             # Identifier for storing dataset in LeRobot repository
+LOCAL_DIR = Path("data/lerobot/so101_pouring")  # Local path for dataset storage
 FPS = 50
 TOTAL_SUCCESSES_NEEDED = 60
 TASK_STR = "Pour the water from the source cup into the target cup."

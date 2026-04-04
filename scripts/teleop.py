@@ -1,3 +1,22 @@
+"""
+SO101 Fully Decoupled Teleoperation Script
+
+This script allows interactive keyboard control of the SO101 robot in MuJoCo.
+The arm is fully decoupled into:
+- Cartesian X/Y/Z (via Damped Least Squares IK for joints 0-2)
+- Pitch (Joint 3)
+- Roll (Joint 4)
+- Gripper (Joint 5)
+
+Features:
+- Ultra-precision mode (hold SHIFT for slower movements)
+- Reset environment at any time ('R' key)
+- Print current joint configuration ('P' key)
+- ESC to exit simulation
+
+Run using sudo PYTHONPATH=. $(which python) scripts/teleop.py
+"""
+
 import time
 import numpy as np
 import mujoco
