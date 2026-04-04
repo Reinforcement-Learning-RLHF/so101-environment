@@ -109,6 +109,3 @@ Key features:
 1. Install dependencies and activate environment.
 2. Run `scripts/inference.py` to visualize the SO-101 pouring task in simulation.
    No local files needed — everything is pulled automatically from the Hub.
-
-Do you want me to add that?
-```
