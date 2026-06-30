@@ -5,6 +5,15 @@ It supports **collecting demos**, **pushing datasets and policies to the LeRobot
 
 ---
 
+## Status
+- No serial/USB communication with the real STS3215 servos. Never importing or calling LeRobot -> physical teleop script / policy will be done in lerobot repo
+- `scripts/inference.py` runs the ACT policy inside MuJoCo. There's no equivalent that:
+  - Reads real joint states from physical motors
+  - Reads frames from real USB cameras
+  - Sends policy actions back to physical motors at 50 Hz
+
+---
+
 ## 🛠 Installation & Setup
 
 ### 1. Prerequisites
